@@ -1,1 +1,152 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tadka Messenger</title>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+  body { background: #0b0f19; color: #fff; display: flex; flex-direction: column; height: 100vh; }
+  .header { background: linear-gradient(90deg, #ff0055, #ff7b00); padding: 15px; text-align: center; font-size: 20px; font-weight: bold; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(255, 0, 85, 0.4); }
+  .tabs { display: flex; background: #151c2c; }
+  .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; border-bottom: 3px solid transparent; transition: 0.3s; }
+  .tab.active { border-bottom: 3px solid #00f2fe; color: #00f2fe; background: #1c253b; }
+  .section { display: none; flex: 1; flex-direction: column; padding: 15px; overflow-y: auto; }
+  .section.active { display: flex; }
+  .room-box { display: flex; gap: 8px; margin-bottom: 12px; background: #151c2c; padding: 10px; border-radius: 10px; border: 1px solid #2a3655; }
+  input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #2e3b5e; background: #0f1524; color: #fff; outline: none; font-size: 15px; }
+  input:focus { border-color: #00f2fe; }
+  button { padding: 12px 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; background: linear-gradient(45deg, #00f2fe, #4facfe); color: #000; transition: 0.2s; white-space: nowrap; }
+  button:active { transform: scale(0.95); }
+  .chat-box { flex: 1; background: #111726; border-radius: 12px; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; border: 1px solid #232d45; margin-bottom: 12px; }
+  .msg { max-width: 78%; padding: 10px 14px; border-radius: 15px; font-size: 15px; word-wrap: break-word; animation: pop 0.2s ease; }
+  @keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .me { align-self: flex-end; background: linear-gradient(135deg, #ff0055, #ff5e00); color: #fff; border-bottom-right-radius: 2px; }
+  .other { align-self: flex-start; background: #232f4b; color: #fff; border-bottom-left-radius: 2px; border: 1px solid #384a75; }
+  .sys { align-self: center; font-size: 12px; color: #00f2fe; background: rgba(0,242,254,0.1); padding: 4px 12px; border-radius: 20px; text-align:center; }
+  .send-row { display: flex; gap: 8px; }
+  .card { background: #151c2c; padding: 20px; border-radius: 14px; border: 1px solid #2a3655; display: flex; flex-direction: column; gap: 15px; }
+  .btn-wa { background: linear-gradient(45deg, #25D366, #128C7E); color: #fff; width: 100%; font-size: 16px; }
+  .btn-sms { background: linear-gradient(45deg, #f7971e, #ffd200); color: #000; width: 100%; font-size: 16px; }
+</style>
+</head>
+<body>
 
+<div class="header">⚡ TADKA CHAT PRO ⚡</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(0)">🔥 Live App Chat</div>
+  <div class="tab" onclick="switchTab(1)">🚀 Direct WA / SMS</div>
+</div>
+
+<div class="section active" id="tab0">
+  <div class="room-box">
+    <input type="text" id="roomCode" placeholder="सीक्रेट रूम कोड (जैसे: king99)" value="king99">
+    <button onclick="joinRoom()">Connect</button>
+  </div>
+  <div class="chat-box" id="chatBox">
+    <div class="sys">ऊपर रूम कोड डालकर Connect दबाएं!</div>
+  </div>
+  <div class="send-row">
+    <input type="text" id="msgInput" placeholder="मैसेज लिखें..." onkeypress="if(event.key==='Enter') sendMsg()">
+    <button onclick="sendMsg()">Send ➤</button>
+  </div>
+</div>
+
+<div class="section" id="tab1">
+  <div class="card">
+    <h3 style="color:#00f2fe;">बिना नंबर सेव किए मैसेज भेजें</h3>
+    <input type="number" id="phoneInput" placeholder="मोबाइल नंबर (जैसे: 919876543210)">
+    <input type="text" id="directText" placeholder="अपना मैसेज लिखें...">
+    <button class="btn-wa" onclick="sendWA()">💬 WhatsApp पर भेजें</button>
+    <button class="btn-sms" onclick="sendSMS()">📩 सामान्य SMS भेजें</button>
+  </div>
+</div>
+
+<script>
+  let client = null;
+  let currentTopic = "";
+  const myId = "user_" + Math.floor(Math.random() * 100000);
+
+  function switchTab(index) {
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
+    document.querySelectorAll('.section').forEach((s, i) => s.classList.toggle('active', i === index));
+  }
+
+  function addSystemMsg(text) {
+    const box = document.getElementById('chatBox');
+    const d = document.createElement('div');
+    d.className = 'sys';
+    d.textContent = text;
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function joinRoom() {
+    const code = document.getElementById('roomCode').value.trim();
+    if (!code) return alert("कोई रूम कोड डालें!");
+    if (client) { try{ client.end(true); }catch(e){} }
+    document.getElementById('chatBox').innerHTML = "";
+    addSystemMsg("कनेक्ट हो रहा है...");
+    currentTopic = "tadka_app_secret_room_" + code;
+    client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+    client.on('connect', () => {
+      client.subscribe(currentTopic);
+      addSystemMsg("✅ जुड़ गए! रूम: " + code + " (अपने दोस्त को भी यही कोड डालने बोलें)");
+    });
+    client.on('error', () => {
+      addSystemMsg("❌ Connect नहीं हुआ, Internet check करके फिर से Connect दबाएं");
+    });
+    client.on('message', (topic, message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        if (data.sender !== myId) {
+          const box = document.getElementById('chatBox');
+          const d = document.createElement('div');
+          d.className = 'msg other';
+          d.textContent = data.text;
+          box.appendChild(d);
+          box.scrollTop = box.scrollHeight;
+          if (navigator.vibrate) navigator.vibrate(100);
+        }
+      } catch(e) {}
+    });
+  }
+
+  function sendMsg() {
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text) return;
+    if (!client || !client.connected) return alert("पहले ऊपर Connect बटन दबाएं!");
+    const payload = JSON.stringify({ sender: myId, text: text });
+    client.publish(currentTopic, payload);
+    const box = document.getElementById('chatBox');
+    const d = document.createElement('div');
+    d.className = 'msg me';
+    d.textContent = text;
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+    input.value = "";
+  }
+
+  function sendWA() {
+    let num = document.getElementById('phoneInput').value.trim();
+    const txt = encodeURIComponent(document.getElementById('directText').value.trim());
+    if (!num) return alert("मोबाइल नंबर डालें!");
+    num = num.replace(/\D/g, '');
+    if (num.length === 10) num = "91" + num;
+    if (num.length < 10) return alert("सही नंबर डालें!");
+    window.open("https://wa.me/" + num + "?text=" + txt, '_blank');
+  }
+
+  function sendSMS() {
+    let num = document.getElementById('phoneInput').value.trim();
+    const txt = encodeURIComponent(document.getElementById('directText').value.trim());
+    if (!num) return alert("मोबाइल नंबर डालें!");
+    num = num.replace(/\D/g, '');
+    window.open("sms:" + num + "?body=" + txt, '_self');
+  }
+</script>
+</body>
+</html>
