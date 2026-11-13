@@ -3,55 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tadka Messenger</title>
+<title>Tadka Messenger PRO</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-  body { background: #0b0f19; color: #fff; display: flex; flex-direction: column; height: 100vh; }
-  .header { background: linear-gradient(90deg, #ff0055, #ff7b00); padding: 15px; text-align: center; font-size: 20px; font-weight: bold; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(255, 0, 85, 0.4); }
-  .tabs { display: flex; background: #151c2c; }
-  .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; border-bottom: 3px solid transparent; transition: 0.3s; }
-  .tab.active { border-bottom: 3px solid #00f2fe; color: #00f2fe; background: #1c253b; }
-  .section { display: none; flex: 1; flex-direction: column; padding: 15px; overflow-y: auto; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { background: #070a14; color: #fff; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background-image: radial-gradient(circle at 10% 10%, rgba(255,0,85,0.15), transparent 40%), radial-gradient(circle at 90% 90%, rgba(0,242,254,0.15), transparent 40%); }
+  .header { background: linear-gradient(90deg, #ff0055, #ff7b00, #ffe600); padding: 14px; text-align: center; font-size: 22px; font-weight: 900; letter-spacing: 1px; color: #fff; text-shadow: 2px 2px 0 #000; box-shadow: 0 5px 20px rgba(255,0,85,0.5); border-bottom: 3px solid #fff; }
+  .header span { font-size: 12px; display: block; font-weight: 700; letter-spacing: 2px; color: #000; background: #fff; border-radius: 20px; margin: 4px 60px 0; padding: 2px; }
+  .tabs { display: flex; background: #12182b; padding: 8px; gap: 8px; }
+  .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-weight: 900; border-radius: 12px; background: #1c253b; border: 2px solid #2a3655; transition: 0.2s; font-size: 14px; }
+  .tab.active { background: linear-gradient(45deg, #00f2fe, #4facfe); color: #000; border-color: #fff; transform: scale(1.03); box-shadow: 0 0 15px #00f2fe; }
+  .section { display: none; flex: 1; flex-direction: column; padding: 12px; overflow-y: auto; }
   .section.active { display: flex; }
-  .room-box { display: flex; gap: 8px; margin-bottom: 12px; background: #151c2c; padding: 10px; border-radius: 10px; border: 1px solid #2a3655; }
-  input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #2e3b5e; background: #0f1524; color: #fff; outline: none; font-size: 15px; }
-  input:focus { border-color: #00f2fe; }
-  button { padding: 12px 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; background: linear-gradient(45deg, #00f2fe, #4facfe); color: #000; transition: 0.2s; white-space: nowrap; }
-  button:active { transform: scale(0.95); }
-  .chat-box { flex: 1; background: #111726; border-radius: 12px; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; border: 1px solid #232d45; margin-bottom: 12px; }
-  .msg { max-width: 78%; padding: 10px 14px; border-radius: 15px; font-size: 15px; word-wrap: break-word; animation: pop 0.2s ease; }
-  @keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .me { align-self: flex-end; background: linear-gradient(135deg, #ff0055, #ff5e00); color: #fff; border-bottom-right-radius: 2px; }
-  .other { align-self: flex-start; background: #232f4b; color: #fff; border-bottom-left-radius: 2px; border: 1px solid #384a75; }
-  .sys { align-self: center; font-size: 12px; color: #00f2fe; background: rgba(0,242,254,0.1); padding: 4px 12px; border-radius: 20px; text-align:center; }
-  .send-row { display: flex; gap: 8px; }
-  .card { background: #151c2c; padding: 20px; border-radius: 14px; border: 1px solid #2a3655; display: flex; flex-direction: column; gap: 15px; }
+  .room-box { display: flex; gap: 8px; margin-bottom: 10px; background: #151c2c; padding: 10px; border-radius: 15px; border: 2px solid #2a3655; box-shadow: 0 4px 0 #000; }
+  input { width: 100%; padding: 13px; border-radius: 12px; border: 2px solid #2e3b5e; background: #0f1524; color: #fff; outline: none; font-size: 15px; font-weight: 600; }
+  input:focus { border-color: #00f2fe; box-shadow: 0 0 10px rgba(0,242,254,0.5); }
+  button { padding: 12px 16px; border: none; border-radius: 12px; font-weight: 900; cursor: pointer; background: linear-gradient(45deg, #00f2fe, #4facfe); color: #000; transition: 0.15s; white-space: nowrap; border-bottom: 4px solid #005a66; }
+  button:active { transform: translateY(3px); border-bottom: 1px solid #005a66; }
+  .chat-box { flex: 1; background: rgba(17,23,38,0.9); border-radius: 18px; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; border: 2px solid #232d45; margin-bottom: 10px; }
+  .msg { max-width: 82%; padding: 10px 13px; border-radius: 18px; font-size: 15px; word-wrap: break-word; animation: pop 0.25s ease; box-shadow: 0 4px 0 rgba(0,0,0,0.4); }
+  @keyframes pop { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .me { align-self: flex-end; background: linear-gradient(135deg, #ff0055, #ff5e00); color: #fff; border-bottom-right-radius: 4px; border: 1px solid #ff8a00; }
+  .other { align-self: flex-start; background: #232f4b; color: #fff; border-bottom-left-radius: 4px; border: 2px solid #384a75; }
+  .sys { align-self: center; font-size: 12px; font-weight: 700; color: #00f2fe; background: rgba(0,242,254,0.12); padding: 6px 14px; border-radius: 20px; text-align:center; border: 1px dashed #00f2fe; }
+  .msg img { width: 100%; max-width: 220px; border-radius: 12px; display: block; margin-top: 4px; border: 2px solid #fff; }
+  .msg video { width: 100%; max-width: 230px; border-radius: 12px; display: block; margin-top: 4px; background: #000; }
+  .msg audio { width: 100%; max-width: 220px; margin-top: 5px; filter: invert(1); }
+  .send-row { display: flex; gap: 6px; align-items: center; background: #151c2c; padding: 8px; border-radius: 18px; border: 2px solid #2a3655; }
+  .icon-btn { width: 48px; height: 48px; padding: 0; font-size: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0; }
+  .btn-photo { background: linear-gradient(45deg, #a855f7, #ec4899); color: #fff; border-bottom-color: #5b21b6; }
+  .btn-voice { background: linear-gradient(45deg, #facc15, #f97316); color: #000; border-bottom-color: #92400e; }
+  .btn-voice.rec { background: #ff0000; color: #fff; animation: blink 0.8s infinite; }
+  @keyframes blink { 50% { opacity: 0.6; } }
+  .btn-video { background: linear-gradient(45deg, #22c55e, #06b6d4); color: #fff; border-bottom-color: #065f46; }
+  .card { background: #151c2c; padding: 20px; border-radius: 20px; border: 2px solid #2a3655; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 6px 0 #000; }
   .btn-wa { background: linear-gradient(45deg, #25D366, #128C7E); color: #fff; width: 100%; font-size: 16px; }
   .btn-sms { background: linear-gradient(45deg, #f7971e, #ffd200); color: #000; width: 100%; font-size: 16px; }
+  #recStatus { text-align: center; font-size: 13px; font-weight: 800; color: #ff5252; display: none; margin-bottom: 5px; }
 </style>
 </head>
 <body>
 
-<div class="header">⚡ TADKA CHAT PRO ⚡</div>
+<div class="header">⚡ TADKA CHAT PRO ⚡<span>🔥 FUTURE EDITION • PHOTO • VOICE • VIDEO 🔥</span></div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab(0)">🔥 Live App Chat</div>
-  <div class="tab" onclick="switchTab(1)">🚀 Direct WA / SMS</div>
+  <div class="tab active" onclick="switchTab(0)">🔥 Live Chat</div>
+  <div class="tab" onclick="switchTab(1)">🚀 WA / SMS</div>
 </div>
 
 <div class="section active" id="tab0">
   <div class="room-box">
-    <input type="text" id="roomCode" placeholder="सीक्रेट रूम कोड (जैसे: king99)" value="king99">
+    <input type="text" id="roomCode" placeholder="रूम कोड (जैसे: king99)" value="king99">
     <button onclick="joinRoom()">Connect</button>
   </div>
   <div class="chat-box" id="chatBox">
-    <div class="sys">ऊपर रूम कोड डालकर Connect दबाएं!</div>
+    <div class="sys">👋 Welcome! Connect दबाकर Chat शुरू करो</div>
+    <div class="sys">📷 Photo • 🎤 Voice • 🎬 Video sab chalega</div>
   </div>
+  <div id="recStatus">● RECORDING... Dobara dabao band karne ke liye</div>
   <div class="send-row">
+    <button class="icon-btn btn-photo" onclick="document.getElementById('photoInput').click()" title="Photo">📷</button>
+    <button class="icon-btn btn-video" onclick="document.getElementById('videoInput').click()" title="Video">🎬</button>
     <input type="text" id="msgInput" placeholder="मैसेज लिखें..." onkeypress="if(event.key==='Enter') sendMsg()">
+    <button class="icon-btn btn-voice" id="voiceBtn" onclick="toggleVoice()" title="Voice">🎤</button>
     <button onclick="sendMsg()">Send ➤</button>
   </div>
+  <input type="file" id="photoInput" accept="image/*" hidden onchange="sendPhoto(this)">
+  <input type="file" id="videoInput" accept="video/*" hidden onchange="sendVideo(this)">
 </div>
 
 <div class="section" id="tab1">
@@ -62,27 +80,24 @@
     <button class="btn-wa" onclick="sendWA()">💬 WhatsApp पर भेजें</button>
     <button class="btn-sms" onclick="sendSMS()">📩 सामान्य SMS भेजें</button>
   </div>
+  <div style="text-align:center; margin-top:15px; opacity:0.7; font-size:13px;">Made with ❤️ Tadka Style - Full Modern UI</div>
 </div>
 
 <script>
   let client = null;
   let currentTopic = "";
   const myId = "user_" + Math.floor(Math.random() * 100000);
+  let mediaRecorder = null, audioChunks = [], isRecording = false;
 
   function switchTab(index) {
     document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
     document.querySelectorAll('.section').forEach((s, i) => s.classList.toggle('active', i === index));
   }
-
   function addSystemMsg(text) {
     const box = document.getElementById('chatBox');
-    const d = document.createElement('div');
-    d.className = 'sys';
-    d.textContent = text;
-    box.appendChild(d);
-    box.scrollTop = box.scrollHeight;
+    const d = document.createElement('div'); d.className = 'sys'; d.textContent = text;
+    box.appendChild(d); box.scrollTop = box.scrollHeight;
   }
-
   function joinRoom() {
     const code = document.getElementById('roomCode').value.trim();
     if (!code) return alert("कोई रूम कोड डालें!");
@@ -91,45 +106,103 @@
     addSystemMsg("कनेक्ट हो रहा है...");
     currentTopic = "tadka_app_secret_room_" + code;
     client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-    client.on('connect', () => {
-      client.subscribe(currentTopic);
-      addSystemMsg("✅ जुड़ गए! रूम: " + code + " (अपने दोस्त को भी यही कोड डालने बोलें)");
-    });
-    client.on('error', () => {
-      addSystemMsg("❌ Connect नहीं हुआ, Internet check करके फिर से Connect दबाएं");
-    });
+    client.on('connect', () => { client.subscribe(currentTopic); addSystemMsg("✅ जुड़ गए! रूम: " + code); });
+    client.on('error', () => { addSystemMsg("❌ Connect नहीं हुआ, फिर से Connect दबाएं"); });
     client.on('message', (topic, message) => {
       try {
         const data = JSON.parse(message.toString());
-        if (data.sender !== myId) {
-          const box = document.getElementById('chatBox');
-          const d = document.createElement('div');
-          d.className = 'msg other';
-          d.textContent = data.text;
-          box.appendChild(d);
-          box.scrollTop = box.scrollHeight;
-          if (navigator.vibrate) navigator.vibrate(100);
-        }
+        if (data.sender !== myId) showMessage(data, false);
       } catch(e) {}
     });
   }
-
+  function showMessage(data, isMe) {
+    const box = document.getElementById('chatBox');
+    const d = document.createElement('div');
+    d.className = 'msg ' + (isMe ? 'me' : 'other');
+    if (data.type === 'photo') {
+      const img = document.createElement('img'); img.src = data.text; d.appendChild(img);
+      const cap = document.createElement('div'); cap.textContent = "📷 Photo"; d.appendChild(cap);
+    } else if (data.type === 'video') {
+      const v = document.createElement('video'); v.src = data.text; v.controls = true; v.playsInline = true; d.appendChild(v);
+    } else if (data.type === 'voice') {
+      const a = document.createElement('audio'); a.src = data.text; a.controls = true; d.appendChild(a);
+      const cap = document.createElement('div'); cap.textContent = "🎤 Voice Note"; d.appendChild(cap);
+    } else {
+      d.textContent = data.text;
+    }
+    box.appendChild(d); box.scrollTop = box.scrollHeight;
+    if (!isMe && navigator.vibrate) navigator.vibrate(100);
+  }
+  function sendPayload(type, text) {
+    if (!client || !client.connected) return alert("पहले ऊपर Connect बटन दबाएं!");
+    const payload = JSON.stringify({ sender: myId, type: type, text: text });
+    client.publish(currentTopic, payload);
+    showMessage({ type: type, text: text }, true);
+  }
   function sendMsg() {
     const input = document.getElementById('msgInput');
     const text = input.value.trim();
     if (!text) return;
-    if (!client || !client.connected) return alert("पहले ऊपर Connect बटन दबाएं!");
-    const payload = JSON.stringify({ sender: myId, text: text });
-    client.publish(currentTopic, payload);
-    const box = document.getElementById('chatBox');
-    const d = document.createElement('div');
-    d.className = 'msg me';
-    d.textContent = text;
-    box.appendChild(d);
-    box.scrollTop = box.scrollHeight;
+    sendPayload('text', text);
     input.value = "";
   }
-
+  function compressImage(file, callback) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        const max = 600;
+        if (w > max) { h = h * max / w; w = max; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        callback(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  function sendPhoto(input) {
+    const file = input.files[0]; if (!file) return;
+    addSystemMsg("📷 Photo भेजा जा रहा है...");
+    compressImage(file, (dataUrl) => { sendPayload('photo', dataUrl); });
+    input.value = "";
+  }
+  function sendVideo(input) {
+    const file = input.files[0]; if (!file) return;
+    if (file.size > 900000) return alert("Video bahut bada hai! 10 sec se chhota video bhejo. Bada video WhatsApp se bhejo.");
+    const reader = new FileReader();
+    reader.onload = (e) => { sendPayload('video', e.target.result); };
+    reader.readAsDataURL(file);
+    input.value = "";
+  }
+  async function toggleVoice() {
+    const btn = document.getElementById('voiceBtn');
+    const status = document.getElementById('recStatus');
+    if (!isRecording) {
+      if (!client || !client.connected) return alert("पहले Connect दबाएं!");
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.onload = (e) => { sendPayload('voice', e.target.result); };
+          reader.readAsDataURL(blob);
+          stream.getTracks().forEach(t => t.stop());
+        };
+        mediaRecorder.start(); isRecording = true;
+        btn.classList.add('rec'); btn.textContent = "⏹️"; status.style.display = 'block';
+        if (navigator.vibrate) navigator.vibrate(200);
+      } catch(err) { alert("Mic permission do! Browser me Allow dabao."); }
+    } else {
+      mediaRecorder.stop(); isRecording = false;
+      btn.classList.remove('rec'); btn.textContent = "🎤"; status.style.display = 'none';
+    }
+  }
   function sendWA() {
     let num = document.getElementById('phoneInput').value.trim();
     const txt = encodeURIComponent(document.getElementById('directText').value.trim());
@@ -139,7 +212,6 @@
     if (num.length < 10) return alert("सही नंबर डालें!");
     window.open("https://wa.me/" + num + "?text=" + txt, '_blank');
   }
-
   function sendSMS() {
     let num = document.getElementById('phoneInput').value.trim();
     const txt = encodeURIComponent(document.getElementById('directText').value.trim());
