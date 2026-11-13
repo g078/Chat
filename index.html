@@ -3,163 +3,144 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Tadka Chat - Cartoon</title>
+<title>Tadka Chat</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Baloo 2', 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; height: 100dvh; overflow: hidden; }
-  body { background: #FFD93D; color: #111; display: flex; flex-direction: column; height: 100dvh; }
-  /* CARTOON HEADER */
-  .header { background: #FF6B35; padding: 10px 10px 8px; text-align: center; border-bottom: 4px solid #111; flex-shrink: 0; }
-  .header h1 { font-size: 24px; font-weight: 800; color: #fff; -webkit-text-stroke: 1px #111; text-shadow: 3px 3px 0 #111; letter-spacing: 1px; line-height: 1; }
-  .header p { font-size: 11px; font-weight: 700; background: #fff; color: #111; display: inline-block; padding: 2px 12px; border: 2px solid #111; border-radius: 20px; margin-top: 5px; box-shadow: 2px 2px 0 #111; }
-  .tabs { display: flex; background: #FFD93D; padding: 8px 10px; gap: 8px; flex-shrink: 0; }
-  .tab { flex: 1; padding: 10px 5px; text-align: center; cursor: pointer; font-weight: 800; font-size: 14px; border-radius: 14px; background: #fff; border: 3px solid #111; box-shadow: 3px 3px 0 #111; }
-  .tab.active { background: #4ECDC4; color: #111; transform: translateY(1px); box-shadow: 1px 1px 0 #111; }
-  .section { display: none; flex: 1; flex-direction: column; padding: 10px; overflow: hidden; min-height: 0; }
-  .section.active { display: flex; }
-  .room-box { display: flex; gap: 8px; margin-bottom: 8px; background: #fff; padding: 8px; border-radius: 16px; border: 3px solid #111; box-shadow: 3px 3px 0 #111; flex-shrink: 0; }
-  input { width: 100%; padding: 11px; border-radius: 12px; border: 3px solid #111; background: #FFF9E6; color: #111; outline: none; font-size: 15px; font-weight: 700; min-width: 0; }
-  button { padding: 11px 14px; border: 3px solid #111; border-radius: 12px; font-weight: 800; cursor: pointer; background: #4ECDC4; color: #111; box-shadow: 3px 3px 0 #111; white-space: nowrap; }
-  button:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #111; }
-  .chat-box { flex: 1; min-height: 0; background: #fff; border-radius: 18px; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 9px; border: 3px solid #111; box-shadow: 4px 4px 0 #111; margin-bottom: 8px; }
-  .msg { max-width: 82%; padding: 9px 12px; border-radius: 16px; font-size: 15px; font-weight: 700; word-wrap: break-word; border: 2.5px solid #111; box-shadow: 2px 2px 0 #111; }
-  .me { align-self: flex-end; background: #FFD93D; border-bottom-right-radius: 4px; }
-  .other { align-self: flex-start; background: #fff; border-bottom-left-radius: 4px; }
-  .sys { align-self: center; font-size: 12px; font-weight: 800; color: #111; background: #FFE8A3; padding: 5px 12px; border-radius: 20px; text-align:center; border: 2px dashed #111; max-width: 95%; }
-  .msg img { width: 100%; max-width: 220px; border-radius: 12px; display: block; margin-top: 4px; border: 3px solid #111; }
-  .msg video { width: 100%; max-width: 230px; border-radius: 12px; display: block; margin-top: 4px; background: #000; border: 3px solid #111; }
-  .msg audio { width: 100%; max-width: 220px; margin-top: 5px; }
-  .msg small { display: block; font-size: 10px; font-weight: 700; opacity: 0.6; margin-top: 3px; text-align: right; }
-  #recStatus { text-align: center; font-size: 13px; font-weight: 800; color: #D32F2F; display: none; margin-bottom: 5px; background: #fff; border: 2px solid #111; border-radius: 20px; padding: 3px; flex-shrink: 0; }
-  .send-row { display: flex; gap: 6px; align-items: center; background: #fff; padding: 7px; border-radius: 18px; border: 3px solid #111; box-shadow: 3px 3px 0 #111; flex-shrink: 0; padding-bottom: calc(7px + env(safe-area-inset-bottom)); }
-  .icon-btn { width: 46px; height: 46px; padding: 0; font-size: 21px; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0; }
-  .btn-photo { background: #FF8FAB; }
-  .btn-voice { background: #FFD93D; }
-  .btn-voice.rec { background: #FF3B30; color: #fff; }
-  .btn-video { background: #6BCB77; }
-  .btn-send { background: #FF6B35; color: #fff; }
-  .card { background: #fff; padding: 18px; border-radius: 20px; border: 3px solid #111; display: flex; flex-direction: column; gap: 13px; box-shadow: 4px 4px 0 #111; }
-  .btn-wa { background: #6BCB77; width: 100%; font-size: 16px; }
-  .btn-sms { background: #FFD93D; width: 100%; font-size: 16px; }
-  .notif-bar { background: #111; color: #FFD93D; text-align: center; font-size: 12px; font-weight: 700; padding: 6px; border-radius: 10px; margin-bottom: 8px; flex-shrink: 0; }
+  body { background: #EAEDED; display: flex; flex-direction: column; height: 100dvh; }
+  .header { background: #075E54; color: #fff; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .header b { font-size: 19px; }
+  .header small { font-size: 11px; opacity: 0.8; display: block; }
+  .header button { background: #25D366; border: none; color: #fff; font-weight: 700; padding: 8px 12px; border-radius: 20px; font-size: 13px; }
+  .room { background: #fff; padding: 8px; display: flex; gap: 8px; flex-shrink: 0; border-bottom: 1px solid #ddd; }
+  .room input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px; background: #F2F2F2; }
+  .room button { background: #075E54; color: #fff; border: none; padding: 10px 16px; border-radius: 20px; font-weight: 700; }
+  .chat { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 7px; }
+  .msg { max-width: 82%; padding: 8px 11px; border-radius: 10px; font-size: 15px; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+  .me { align-self: flex-end; background: #DCF8C6; border-top-right-radius: 2px; }
+  .other { align-self: flex-start; background: #fff; border-top-left-radius: 2px; }
+  .msg img, .msg video { width: 100%; max-width: 230px; border-radius: 8px; display: block; margin-top: 4px; }
+  .msg audio { width: 100%; max-width: 220px; margin-top: 4px; }
+  .msg small { display: block; font-size: 10px; color: #888; text-align: right; margin-top: 3px; }
+  .send { background: #fff; padding: 8px; display: flex; gap: 6px; align-items: center; flex-shrink: 0; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .send input[type=text] { flex: 1; padding: 11px 14px; border: none; background: #F2F2F2; border-radius: 25px; outline: none; font-size: 15px; min-width: 0; }
+  .ic { width: 42px; height: 42px; border: none; border-radius: 50%; background: #F2F2F2; font-size: 19px; flex-shrink: 0; }
+  .ic.rec { background: #FF3B30; color: #fff; }
+  .sendBtn { width: 46px; height: 46px; border: none; border-radius: 50%; background: #25D366; color: #fff; font-size: 18px; flex-shrink: 0; }
+  /* Video Call */
+  #callBox { display: none; position: fixed; inset: 0; background: #000; z-index: 100; flex-direction: column; }
+  #callBox.show { display: flex; }
+  #remoteVideo { flex: 1; width: 100%; background: #111; object-fit: cover; }
+  #localVideo { position: absolute; top: 12px; right: 12px; width: 110px; height: 150px; border-radius: 10px; border: 2px solid #fff; object-fit: cover; background: #222; }
+  #callBar { padding: 14px; display: flex; justify-content: center; gap: 12px; background: #111; }
+  #callBar button { width: 58px; height: 58px; border-radius: 50%; border: none; font-size: 22px; }
+  .endCall { background: #FF3B30 !important; color: #fff; }
+  .empty { text-align: center; color: #888; font-size: 13px; padding: 20px; }
 </style>
 </head>
 <body>
 
-<div class="header"><h1>⚡ TADKA CHAT ⚡</h1><p>🎨 CARTOON EDITION • PHOTO • VOICE • VIDEO</p></div>
-
-<div class="tabs">
-  <div class="tab active" onclick="switchTab(0)">💬 Live Chat</div>
-  <div class="tab" onclick="switchTab(1)">🚀 WA / SMS</div>
+<div class="header">
+  <div><b>Tadka Chat</b><small id="statusText">Offline • Room connect karo</small></div>
+  <button onclick="startCall()">📹 Video Call</button>
 </div>
 
-<div class="section active" id="tab0">
-  <div class="room-box">
-    <input type="text" id="roomCode" placeholder="रूम कोड (king99)" value="king99">
-    <button onclick="joinRoom()">Connect</button>
-  </div>
-  <div class="notif-bar" id="notifBar" onclick="askNotify()">🔔 Notification ON करने के लिए यहाँ दबाओ</div>
-  <div class="chat-box" id="chatBox">
-    <div class="sys">👋 Welcome Dost! Connect दबाओ</div>
-  </div>
-  <div id="recStatus">● RECORDING... Band karne ke liye fir se 🎤 dabao</div>
-  <div class="send-row">
-    <button class="icon-btn btn-photo" onclick="document.getElementById('photoInput').click()">📷</button>
-    <button class="icon-btn btn-video" onclick="document.getElementById('videoInput').click()">🎬</button>
-    <input type="text" id="msgInput" placeholder="Kuch likho..." onkeypress="if(event.key==='Enter') sendMsg()">
-    <button class="icon-btn btn-voice" id="voiceBtn" onclick="toggleVoice()">🎤</button>
-    <button class="btn-send" onclick="sendMsg()">Send ➤</button>
-  </div>
-  <input type="file" id="photoInput" accept="image/*" hidden onchange="sendPhoto(this)">
-  <input type="file" id="videoInput" accept="video/*" hidden onchange="sendVideo(this)">
+<div class="room">
+  <input type="text" id="roomCode" placeholder="Room code" value="king99">
+  <button onclick="joinRoom()">Connect</button>
 </div>
 
-<div class="section" id="tab1">
-  <div class="card">
-    <h3>बिना नंबर सेव किए भेजो</h3>
-    <input type="number" id="phoneInput" placeholder="मोबाइल नंबर">
-    <input type="text" id="directText" placeholder="अपना मैसेज लिखें...">
-    <button class="btn-wa" onclick="sendWA()">💬 WhatsApp पर भेजें</button>
-    <button class="btn-sms" onclick="sendSMS()">📩 SMS भेजें</button>
+<div class="chat" id="chatBox"><div class="empty">Room connect karo, saare purane message yahi dikhenge</div></div>
+
+<div class="send">
+  <button class="ic" onclick="document.getElementById('photoInput').click()">📷</button>
+  <button class="ic" onclick="document.getElementById('videoInput').click()">🎬</button>
+  <input type="text" id="msgInput" placeholder="Message..." onkeypress="if(event.key==='Enter') sendMsg()">
+  <button class="ic" id="voiceBtn" onclick="toggleVoice()">🎤</button>
+  <button class="sendBtn" onclick="sendMsg()">➤</button>
+</div>
+
+<input type="file" id="photoInput" accept="image/*" hidden onchange="sendPhoto(this)">
+<input type="file" id="videoInput" accept="video/*" hidden onchange="sendVideo(this)">
+
+<!-- VIDEO CALL SCREEN -->
+<div id="callBox">
+  <video id="remoteVideo" autoplay playsinline></video>
+  <video id="localVideo" autoplay playsinline muted></video>
+  <div id="callBar">
+    <button onclick="toggleMic()" id="micBtn">🎤</button>
+    <button onclick="toggleCam()" id="camBtn">📷</button>
+    <button class="endCall" onclick="endCall()">📞</button>
   </div>
 </div>
 
 <script>
-  let client = null, currentTopic = "", currentRoom = "";
-  const myId = "user_" + Math.floor(Math.random() * 100000);
+  let client = null, baseTopic = "", currentRoom = "";
+  const myId = "u_" + Math.floor(Math.random()*100000);
   let mediaRecorder = null, audioChunks = [], isRecording = false;
-  let savedMsgs = [];
+  let saved = [], seen = new Set();
+  let pc = null, localStream = null, micOn = true, camOn = true;
 
-  function switchTab(i){ document.querySelectorAll('.tab').forEach((t,idx)=>t.classList.toggle('active',idx===i)); document.querySelectorAll('.section').forEach((s,idx)=>s.classList.toggle('active',idx===i)); }
   function timeNow(){ return new Date().toLocaleTimeString('hi-IN',{hour:'2-digit',minute:'2-digit'}); }
-  function saveLocal(data){ try{ savedMsgs.push(data); if(savedMsgs.length>60) savedMsgs=savedMsgs.slice(-60); localStorage.setItem('tadka_'+currentRoom, JSON.stringify(savedMsgs)); }catch(e){} }
-  function loadLocal(room){
-    try{ savedMsgs = JSON.parse(localStorage.getItem('tadka_'+room) || '[]'); }catch(e){ savedMsgs=[]; }
-    const box=document.getElementById('chatBox'); box.innerHTML="";
-    if(savedMsgs.length===0) addSystemMsg("👋 Naya room hai, pehla message bhejo!");
-    else { addSystemMsg("📂 Purane "+savedMsgs.length+" message mil gaye!"); savedMsgs.forEach(m=>showMessage(m, m.sender===myId, true)); }
-  }
-  function addSystemMsg(t){ const box=document.getElementById('chatBox'); const d=document.createElement('div'); d.className='sys'; d.textContent=t; box.appendChild(d); box.scrollTop=box.scrollHeight; }
-  function askNotify(){
-    if(!("Notification" in window)) return alert("Is browser me notification nahi chalega");
-    Notification.requestPermission().then(p=>{
-      if(p==="granted"){ document.getElementById('notifBar').textContent="✅ Notification ON hai! Dost ka message aate hi pata chalega"; new Notification("Tadka Chat",{body:"Notification ON ho gaya!"}); }
-      else alert("Allow dabao warna notification nahi aayega");
-    });
-  }
-  function showNotify(title, body){
-    if(document.hidden && "Notification" in window && Notification.permission==="granted"){
-      try{ new Notification(title,{body:body}); }catch(e){}
-    }
-    try{ const a=new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=="); a.play().catch(()=>{}); }catch(e){}
-    if(navigator.vibrate) navigator.vibrate([100,50,100]);
-  }
+  function setStatus(t){ document.getElementById('statusText').textContent = t; }
+
   function joinRoom(){
-    const code=document.getElementById('roomCode').value.trim();
-    if(!code) return alert("Room code daalo!");
+    const code = document.getElementById('roomCode').value.trim();
+    if(!code) return alert("Room code daalo");
     if(client){ try{client.end(true);}catch(e){} }
-    currentRoom=code; currentTopic="tadka_app_secret_room_"+code;
-    loadLocal(code);
-    addSystemMsg("Connect ho raha hai...");
-    client=mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-    client.on('connect',()=>{ client.subscribe(currentTopic); addSystemMsg("✅ Jud gaye! Room: "+code); });
-    client.on('error',()=>{ addSystemMsg("❌ Net check karke fir Connect dabao"); });
-    client.on('message',(topic,message)=>{
+    currentRoom = code; baseTopic = "tadka_final_" + code;
+    saved = []; seen = new Set();
+    try{ saved = JSON.parse(localStorage.getItem('tadka_'+code)||'[]'); }catch(e){ saved=[]; }
+    seen = new Set(saved.map(m=>m.id));
+    const box = document.getElementById('chatBox'); box.innerHTML = "";
+    if(saved.length) saved.forEach(m=>showMsg(m, m.sender===myId));
+    else box.innerHTML = '<div class="empty">Naya room hai</div>';
+    setStatus("Connecting...");
+    client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+    client.on('connect', ()=>{
+      // Saare message + signal dono suno
+      client.subscribe(baseTopic + "/msg/#");
+      client.subscribe(baseTopic + "/signal");
+      setStatus("Online • Room: " + code);
+    });
+    client.on('message', (topic, message)=>{
       try{
-        const data=JSON.parse(message.toString());
+        if(topic.endsWith("/signal")){ handleSignal(JSON.parse(message.toString())); return; }
+        const data = JSON.parse(message.toString());
         if(data.sender===myId) return;
-        // Duplicate rokne ke liye
-        if(savedMsgs.some(m=>m.id===data.id)) return;
-        saveLocal(data); showMessage(data,false);
-        showNotify("Tadka Chat - Naya Message", data.type==='text'? data.text : "📷 Naya "+data.type+" aaya hai");
+        if(seen.has(data.id)) return;
+        seen.add(data.id); save(data); showMsg(data,false);
+        if(navigator.vibrate) navigator.vibrate(80);
       }catch(e){}
     });
   }
-  function showMessage(data,isMe,fromHistory){
-    const box=document.getElementById('chatBox');
-    const d=document.createElement('div'); d.className='msg '+(isMe?'me':'other');
-    if(data.type==='photo'){ const img=document.createElement('img'); img.src=data.text; d.appendChild(img); const c=document.createElement('div'); c.textContent="📷 Photo"; d.appendChild(c); }
+  function save(d){ saved.push(d); saved.sort((a,b)=>a.ts-b.ts); if(saved.length>100) saved=saved.slice(-100); try{localStorage.setItem('tadka_'+currentRoom, JSON.stringify(saved));}catch(e){} }
+  function showMsg(data,isMe){
+    const box = document.getElementById('chatBox');
+    if(box.querySelector('.empty')) box.innerHTML="";
+    const d = document.createElement('div'); d.className='msg '+(isMe?'me':'other');
+    if(data.type==='photo'){ const img=document.createElement('img'); img.src=data.text; d.appendChild(img); }
     else if(data.type==='video'){ const v=document.createElement('video'); v.src=data.text; v.controls=true; v.playsInline=true; d.appendChild(v); }
-    else if(data.type==='voice'){ const a=document.createElement('audio'); a.src=data.text; a.controls=true; d.appendChild(a); const c=document.createElement('div'); c.textContent="🎤 Voice"; d.appendChild(c); }
+    else if(data.type==='voice'){ const a=document.createElement('audio'); a.src=data.text; a.controls=true; d.appendChild(a); }
     else d.textContent=data.text;
     const s=document.createElement('small'); s.textContent=data.time||timeNow(); d.appendChild(s);
     box.appendChild(d); box.scrollTop=box.scrollHeight;
   }
   function sendPayload(type,text){
     if(!client||!client.connected) return alert("Pehle Connect dabao!");
-    const data={ id: Date.now()+"_"+myId, sender:myId, type:type, text:text, time:timeNow() };
-    // retain:true = server yaad rakhega, baad me aane wale ko bhi milega
-    client.publish(currentTopic, JSON.stringify(data), {retain:true});
-    saveLocal(data); showMessage(data,true);
+    const data={ id: Date.now()+"_"+myId+"_"+Math.floor(Math.random()*99999), sender:myId, type:type, text:text, time:timeNow(), ts:Date.now() };
+    const str = JSON.stringify(data);
+    // 1. Live ke liye normal + 2. History ke liye alag topic par retain
+    // Isse 10 message bhejoge to 10 hi rahenge, 1 nahi
+    client.publish(baseTopic+"/msg/"+data.id, str, {retain:true, qos:1});
+    seen.add(data.id); save(data); showMsg(data,true);
   }
-  function sendMsg(){ const inp=document.getElementById('msgInput'); const t=inp.value.trim(); if(!t) return; sendPayload('text',t); inp.value=""; }
-  function compressImage(file,cb){ const r=new FileReader(); r.onload=(e)=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement('canvas'); let w=img.width,h=img.height; const max=600; if(w>max){h=h*max/w;w=max;} c.width=w;c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); cb(c.toDataURL('image/jpeg',0.6)); }; img.src=e.target.result; }; r.readAsDataURL(file); }
-  function sendPhoto(inp){ const f=inp.files[0]; if(!f) return; addSystemMsg("📷 Photo bheja ja raha..."); compressImage(f,(url)=>sendPayload('photo',url)); inp.value=""; }
-  function sendVideo(inp){ const f=inp.files[0]; if(!f) return; if(f.size>900000) return alert("Video bada hai! 10 sec se chhota bhejo."); const r=new FileReader(); r.onload=(e)=>sendPayload('video',e.target.result); r.readAsDataURL(f); inp.value=""; }
+  function sendMsg(){ const i=document.getElementById('msgInput'); const t=i.value.trim(); if(!t) return; sendPayload('text',t); i.value=""; }
+  function sendPhoto(inp){ const f=inp.files[0]; if(!f) return; const r=new FileReader(); r.onload=(e)=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement('canvas'); let w=img.width,h=img.height; if(w>600){h=h*600/w;w=600;} c.width=w;c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); sendPayload('photo',c.toDataURL('image/jpeg',0.6)); }; img.src=e.target.result; }; r.readAsDataURL(f); inp.value=""; }
+  function sendVideo(inp){ const f=inp.files[0]; if(!f) return; if(f.size>900000) return alert("Video bada hai, 8-10 sec ka bhejo"); const r=new FileReader(); r.onload=(e)=>sendPayload('video',e.target.result); r.readAsDataURL(f); inp.value=""; }
   async function toggleVoice(){
-    const btn=document.getElementById('voiceBtn'), st=document.getElementById('recStatus');
+    const btn=document.getElementById('voiceBtn');
     if(!isRecording){
       if(!client||!client.connected) return alert("Pehle Connect dabao!");
       try{
@@ -167,12 +148,54 @@
         mediaRecorder=new MediaRecorder(stream); audioChunks=[];
         mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
         mediaRecorder.onstop=()=>{ const blob=new Blob(audioChunks,{type:'audio/webm'}); const r=new FileReader(); r.onload=(e)=>sendPayload('voice',e.target.result); r.readAsDataURL(blob); stream.getTracks().forEach(t=>t.stop()); };
-        mediaRecorder.start(); isRecording=true; btn.classList.add('rec'); btn.textContent="⏹️"; st.style.display='block';
-      }catch(e){ alert("Mic Allow dabao!"); }
-    } else { mediaRecorder.stop(); isRecording=false; btn.classList.remove('rec'); btn.textContent="🎤"; st.style.display='none'; }
+        mediaRecorder.start(); isRecording=true; btn.classList.add('rec'); btn.textContent="⏹️";
+      }catch(e){ alert("Mic Allow karo"); }
+    } else { mediaRecorder.stop(); isRecording=false; btn.classList.remove('rec'); btn.textContent="🎤"; }
   }
-  function sendWA(){ let num=document.getElementById('phoneInput').value.trim(); const txt=encodeURIComponent(document.getElementById('directText').value.trim()); if(!num) return alert("Number daalo!"); num=num.replace(/\D/g,''); if(num.length===10) num="91"+num; if(num.length<10) return alert("Sahi number daalo!"); window.open("https://wa.me/"+num+"?text="+txt,'_blank'); }
-  function sendSMS(){ let num=document.getElementById('phoneInput').value.trim(); const txt=encodeURIComponent(document.getElementById('directText').value.trim()); if(!num) return alert("Number daalo!"); num=num.replace(/\D/g,''); window.open("sms:"+num+"?body="+txt,'_self'); }
+
+  // ===== VIDEO CALL - WebRTC via MQTT Signal =====
+  function sendSignal(obj){ if(!client||!client.connected) return alert("Pehle Connect dabao!"); obj.from=myId; client.publish(baseTopic+"/signal", JSON.stringify(obj)); }
+  async function startCall(){
+    if(!client||!client.connected) return alert("Pehle Connect dabao!");
+    document.getElementById('callBox').classList.add('show');
+    await setupPC();
+    const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+    sendSignal({type:'offer', sdp: offer});
+  }
+  async function setupPC(){
+    if(pc) return;
+    localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+    document.getElementById('localVideo').srcObject = localStream;
+    pc = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    localStream.getTracks().forEach(t=>pc.addTrack(t, localStream));
+    pc.ontrack = (e)=>{ document.getElementById('remoteVideo').srcObject = e.streams[0]; };
+    pc.onicecandidate = (e)=>{ if(e.candidate) sendSignal({type:'ice', candidate:e.candidate}); };
+  }
+  async function handleSignal(d){
+    if(d.from===myId) return;
+    if(d.type==='offer'){
+      const ok = confirm("Video Call aa raha hai, Accept karu?");
+      if(!ok) return;
+      document.getElementById('callBox').classList.add('show');
+      await setupPC();
+      await pc.setRemoteDescription(new RTCSessionDescription(d.sdp));
+      const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
+      sendSignal({type:'answer', sdp: ans});
+    } else if(d.type==='answer'){
+      if(pc) await pc.setRemoteDescription(new RTCSessionDescription(d.sdp));
+    } else if(d.type==='ice'){
+      if(pc) try{ await pc.addIceCandidate(new RTCIceCandidate(d.candidate)); }catch(e){}
+    } else if(d.type==='end'){ endCall(true); }
+  }
+  function toggleMic(){ micOn=!micOn; if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=micOn); document.getElementById('micBtn').textContent=micOn?'🎤':'🔇'; }
+  function toggleCam(){ camOn=!camOn; if(localStream) localStream.getVideoTracks().forEach(t=>t.enabled=camOn); document.getElementById('camBtn').textContent=camOn?'📷':'🚫'; }
+  function endCall(silent){
+    if(!silent) sendSignal({type:'end'});
+    document.getElementById('callBox').classList.remove('show');
+    if(pc){ try{pc.close();}catch(e){} pc=null; }
+    if(localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream=null; }
+    document.getElementById('remoteVideo').srcObject=null; document.getElementById('localVideo').srcObject=null;
+  }
 </script>
 </body>
 </html>
