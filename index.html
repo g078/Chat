@@ -55,7 +55,7 @@
 <div class="header">
   <div><b>Chat</b><small id="statusText">Offline</small></div>
   <div style="display:flex;gap:6px;">
-    <button onclick="toggleSelectMode()">🗑️</button>
+    <button onclick="toggleSelectMode()">✘</button>
     <button onclick="startCall()">📹 Video Call</button>
   </div>
 </div>
@@ -76,11 +76,11 @@
 <div class="chat" id="chatBox"><div class="empty">No messages</div></div>
 
 <div class="send">
-  <button class="ic" onclick="document.getElementById('photoInput').click()">📷</button>
-  <button class="ic" onclick="document.getElementById('videoInput').click()">🎬</button>
+  <button class="ic" onclick="document.getElementById('photoInput').click()">⛶</button>
+  <button class="ic" onclick="document.getElementById('videoInput').click()">📼</button>
   <input type="text" id="msgInput" placeholder="Message..." onkeypress="if(event.key==='Enter') sendMsg()">
-  <button class="ic" id="voiceBtn" onclick="toggleVoice()">🎤</button>
-  <button class="sendBtn" onclick="sendMsg()">➤</button>
+  <button class="ic" id="voiceBtn" onclick="toggleVoice()">၊၊||၊</button>
+  <button class="sendBtn" onclick="sendMsg()">⌲</button>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" hidden onchange="sendPhoto(this)">
