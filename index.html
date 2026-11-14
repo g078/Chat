@@ -8,36 +8,38 @@
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; height: 100dvh; overflow: hidden; }
-  body { background: #EAEDED; display: flex; flex-direction: column; height: 100dvh; }
-  .header { background: #075E54; color: #fff; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-  .header b { font-size: 19px; }
-  .header small { font-size: 11px; opacity: 0.8; display: block; }
-  .header button { background: #25D366; border: none; color: #fff; font-weight: 700; padding: 8px 12px; border-radius: 20px; font-size: 13px; }
-  .room { background: #fff; padding: 8px; display: flex; gap: 8px; flex-shrink: 0; border-bottom: 1px solid #ddd; }
-  .room input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px; background: #F2F2F2; }
-  .room button { background: #075E54; color: #fff; border: none; padding: 10px 16px; border-radius: 20px; font-weight: 700; }
-  .chat { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 7px; }
-  .msg { max-width: 82%; padding: 8px 11px; border-radius: 10px; font-size: 15px; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.15); position: relative; }
-  .me { align-self: flex-end; background: #DCF8C6; border-top-right-radius: 2px; }
-  .other { align-self: flex-start; background: #fff; border-top-left-radius: 2px; }
-  .msg img, .msg video { width: 100%; max-width: 230px; border-radius: 8px; display: block; margin-top: 4px; }
-  .msg audio { width: 100%; max-width: 220px; margin-top: 4px; }
-  .msg small { display: block; font-size: 10px; color: #888; text-align: right; margin-top: 3px; }
-  .senderName { font-size: 11px; font-weight: 700; color: #075E54; margin-bottom: 2px; display: block; }
-  .msg.sel { outline: 2px solid #075E54; }
-  .msg .tick { display: none; position: absolute; left: -8px; top: -8px; width: 22px; height: 22px; background: #075E54; color: #fff; border-radius: 50%; font-size: 12px; align-items: center; justify-content: center; }
+  body { background: #F8F4EA; display: flex; flex-direction: column; height: 100dvh; color: #243A32; }
+  .header { background: linear-gradient(135deg, #102F27, #174A3C, #102F27); color: #FFFDF5; padding: 15px 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; border-bottom: 3px solid #C9A85D; box-shadow: 0 5px 18px rgba(16,47,39,0.22); }
+  .header b { font-size: 21px; font-weight: 800; letter-spacing: 0.7px; }
+  .header small { font-size: 11px; opacity: 0.8; display: block; margin-top: 3px; color: #E4D3A3; }
+  .header button { background: linear-gradient(145deg, #E8D09A, #C9A85D); border: 1px solid #F5E6BC; color: #18382D; font-weight: 800; padding: 9px 12px; border-radius: 13px; font-size: 13px; box-shadow: 0 3px 0 #997A3C, 0 5px 12px rgba(0,0,0,0.15); }
+  .room { background: #FFFCF5; padding: 10px; display: flex; gap: 8px; flex-shrink: 0; border-bottom: 1px solid #E9DFC9; }
+  .room input { flex: 1; padding: 11px 14px; border: 1.5px solid #DDD1B9; border-radius: 14px; outline: none; font-size: 14px; background: #F7F3E9; color: #173A30; min-width: 0; }
+  .room input:focus { border-color: #B99A57; box-shadow: 0 0 0 3px rgba(201,168,93,0.12); }
+  .room button { background: linear-gradient(145deg, #245C49, #123C30); color: #F8E8BD; border: 1px solid #B99A57; padding: 10px 17px; border-radius: 13px; font-weight: 800; box-shadow: 0 3px 0 #0B2921; }
+  .chat { flex: 1; min-height: 0; overflow-y: auto; padding: 13px 11px; display: flex; flex-direction: column; gap: 11px; background-color: #F5F0E5; background-image: radial-gradient(rgba(174,148,94,0.12) 1px, transparent 1px); background-size: 21px 21px; }
+  .msg { max-width: 82%; padding: 11px 13px; border-radius: 16px; font-size: 15px; line-height: 1.45; word-wrap: break-word; box-shadow: 0 3px 9px rgba(58,48,28,0.09); position: relative; border: 1px solid rgba(174,148,94,0.13); }
+  .me { align-self: flex-end; background: linear-gradient(145deg, #E2EEDC, #D0E5D2); color: #183B2E; border-bottom-right-radius: 4px; }
+  .other { align-self: flex-start; background: linear-gradient(145deg, #FFFEFA, #F8F3E8); color: #39382F; border-bottom-left-radius: 4px; }
+  .msg img, .msg video { width: 100%; max-width: 230px; border-radius: 11px; display: block; margin-top: 6px; border: 1px solid rgba(201,168,93,0.4); }
+  .msg audio { width: 100%; max-width: 220px; margin-top: 6px; }
+  .msg small { display: block; font-size: 10px; color: #91866D; text-align: right; margin-top: 5px; }
+  .senderName { font-size: 11px; font-weight: 800; color: #98783D; margin-bottom: 3px; display: block; }
+  .msg.sel { outline: 2px solid #C9A85D; }
+  .msg .tick { display: none; position: absolute; left: -8px; top: -8px; width: 23px; height: 23px; background: #174A3C; color: #EBD59D; border: 2px solid #F8F4EA; border-radius: 50%; font-size: 12px; align-items: center; justify-content: center; }
   .msg.sel .tick { display: flex; }
-  .selectBar { display: none; background: #075E54; color: #fff; padding: 8px; gap: 6px; align-items: center; flex-shrink: 0; }
+  .selectBar { display: none; background: linear-gradient(135deg, #102F27, #174A3C); color: #F8E8BD; padding: 9px; gap: 6px; align-items: center; flex-shrink: 0; }
   .selectBar.show { display: flex; }
-  .selectBar button { border: none; padding: 8px 12px; border-radius: 20px; font-weight: 700; font-size: 13px; }
-  .selectBar .allBtn { background: #fff; color: #075E54; }
-  .selectBar .delBtn { background: #FF3B30; color: #fff; }
-  .selectBar .cancelBtn { background: #555; color: #fff; margin-left: auto; }
-  .send { background: #fff; padding: 8px; display: flex; gap: 6px; align-items: center; flex-shrink: 0; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
-  .send input[type=text] { flex: 1; padding: 11px 14px; border: none; background: #F2F2F2; border-radius: 25px; outline: none; font-size: 15px; min-width: 0; }
-  .ic { width: 42px; height: 42px; border: none; border-radius: 50%; background: #F2F2F2; font-size: 19px; flex-shrink: 0; }
-  .ic.rec { background: #FF3B30; color: #fff; }
-  .sendBtn { width: 46px; height: 46px; border: none; border-radius: 50%; background: #25D366; color: #fff; font-size: 18px; flex-shrink: 0; }
+  .selectBar button { border: none; padding: 8px 10px; border-radius: 10px; font-weight: 800; font-size: 12px; }
+  .selectBar .allBtn { background: #E5CB8E; color: #173A30; }
+  .selectBar .delBtn { background: #B84B43; color: #fff; }
+  .selectBar .cancelBtn { background: #53665B; color: #fff; margin-left: auto; }
+  .send { background: #FFFCF5; padding: 9px; display: flex; gap: 6px; align-items: center; flex-shrink: 0; border-top: 1px solid #E7DCC5; padding-bottom: calc(9px + env(safe-area-inset-bottom)); }
+  .send input[type=text] { flex: 1; padding: 12px 14px; border: 1.5px solid #E3D8C2; background: #F7F3EA; border-radius: 22px; outline: none; font-size: 15px; min-width: 0; color: #173A30; }
+  .send input[type=text]:focus { border-color: #B99A57; box-shadow: 0 0 0 3px rgba(201,168,93,0.12); }
+  .ic { width: 42px; height: 42px; border: none; border-radius: 50%; background: #F7F3EA; border: 1.5px solid #E3D8C2; font-size: 19px; flex-shrink: 0; }
+  .ic.rec { background: #B84B43; color: #fff; border-color: #B84B43; }
+  .sendBtn { width: 46px; height: 46px; border: none; border-radius: 50%; background: linear-gradient(145deg, #245C49, #123C30); color: #F8E8BD; font-size: 18px; flex-shrink: 0; box-shadow: 0 3px 0 #0B2921; border: 1px solid #B99A57; }
   #callBox { display: none; position: fixed; inset: 0; background: #000; z-index: 100; flex-direction: column; }
   #callBox.show { display: flex; }
   #remoteVideo { flex: 1; width: 100%; background: #111; object-fit: cover; }
@@ -45,7 +47,7 @@
   #callBar { padding: 14px; display: flex; justify-content: center; gap: 12px; background: #111; }
   #callBar button { width: 58px; height: 58px; border-radius: 50%; border: none; font-size: 22px; }
   .endCall { background: #FF3B30 !important; color: #fff; }
-  .empty { text-align: center; color: #888; font-size: 13px; padding: 20px; }
+  .empty { text-align: center; color: #91866D; font-size: 13px; padding: 20px; }
 </style>
 </head>
 <body>
@@ -126,7 +128,6 @@
     return "User " + String(id).slice(-4);
   }
 
-  // --- ONLINE / MEMBERS ---
   function updateMembersUI(){
     const now = Date.now();
     const ids = Object.keys(members).filter(id => now - members[id].lastSeen < 15000);
@@ -137,7 +138,6 @@
     try{ client.publish(baseTopic + "/presence", JSON.stringify({id: myId, name: myName || getName(), ts: Date.now()})); }catch(e){}
   }
 
-  // --- NOTIFICATION : khula hoga tab ---
   function playBeep(){
     try{
       const ctx = new (window.AudioContext||window.webkitAudioContext)();
@@ -169,7 +169,6 @@
     if(pruneTimer) clearInterval(pruneTimer);
     currentRoom = code; baseTopic = "tadka_final_" + code;
     saved = []; seen = new Set(); members = {}; selectedIds = new Set();
-    // Deleted list load - jo delete ho chuka wo kabhi wapas nahi aayega
     try{ deletedIds = new Set(JSON.parse(localStorage.getItem('tadka_deleted_'+code)||'[]')); }catch(e){ deletedIds = new Set(); }
     try{ saved = JSON.parse(localStorage.getItem('tadka_'+code)||'[]'); }catch(e){ saved=[]; }
     saved = saved.filter(m=> !deletedIds.has(m.id));
@@ -196,9 +195,7 @@
       try{
         if(topic.endsWith("/signal")){ handleSignal(JSON.parse(message.toString())); return; }
         if(topic.endsWith("/presence")){ const p=JSON.parse(message.toString()); if(p&&p.id){ members[p.id]={name:p.name||"User", lastSeen:Date.now()}; updateMembersUI(); } return; }
-        // DELETE - sabke liye
         if(topic.endsWith("/delete")){ handleDeleteMsg(JSON.parse(message.toString())); return; }
-        // DELETED LIST - jo pehle delete hua, teesra aadmi aaye to bhi na dikhe
         if(topic.endsWith("/deleted-list")){
           const d=JSON.parse(message.toString());
           if(d && d.ids){
@@ -214,7 +211,7 @@
         const data = JSON.parse(message.toString());
         if(data.sender===myId) return;
         if(seen.has(data.id)) return;
-        if(deletedIds.has(data.id)) return; // delete hua hua message wapas mat dikhao
+        if(deletedIds.has(data.id)) return;
         seen.add(data.id); save(data); showMsg(data,false);
         notifyNew(data);
       }catch(e){}
@@ -238,10 +235,8 @@
   function saveAll(){ try{ localStorage.setItem('tadka_'+currentRoom, JSON.stringify(saved)); }catch(e){} }
   function saveDeletedList(){ try{ localStorage.setItem('tadka_deleted_'+currentRoom, JSON.stringify(Array.from(deletedIds))); }catch(e){} }
 
-  // --- DELETE FIX : Mera delete = Sabke phone se delete + Teesra aaye to bhi na dikhe ---
   function publishDeletedList(){
     if(!client || !client.connected) return;
-    // Retain rakha hai taaki jo baad me aaye usko bhi pata chale ye delete ho chuka hai
     try{ client.publish(baseTopic+"/deleted-list", JSON.stringify({ids: Array.from(deletedIds)}), {retain:true, qos:1}); }catch(e){}
   }
   function removeMsgFromUI(id){
@@ -255,7 +250,6 @@
       saved = saved.filter(m=>m.id!==id);
       seen.delete(id);
       removeMsgFromUI(id);
-      // Server se us message ka retain saaf karo - warna teesre ko wapas dikhega
       if(client && client.connected){ try{ client.publish(baseTopic+"/msg/"+id, "", {retain:true, qos:1}); }catch(e){} }
     });
     saveAll(); saveDeletedList();
@@ -332,9 +326,8 @@
       else { selectedIds.add(data.id); d.classList.add('sel'); }
       updateSelCount();
     };
-    // Long press - message dabake rakho to delete
-    let pressTimer=null, longPressed=false;
-    const startPress = ()=>{ longPressed=false; pressTimer=setTimeout(()=>{ longPressed=true; if(navigator.vibrate) navigator.vibrate(60); deleteOne(data.id); }, 600); };
+    let pressTimer=null;
+    const startPress = ()=>{ pressTimer=setTimeout(()=>{ if(navigator.vibrate) navigator.vibrate(60); deleteOne(data.id); }, 600); };
     const endPress = ()=>{ if(pressTimer) clearTimeout(pressTimer); };
     d.addEventListener('touchstart', startPress);
     d.addEventListener('touchend', endPress);
@@ -438,4 +431,4 @@
   }
 </script>
 </body>
-   </html>
+</html>
