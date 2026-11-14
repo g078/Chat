@@ -13,6 +13,9 @@
   .header b { font-size: 19px; }
   .header small { font-size: 11px; opacity: 0.8; display: block; }
   .header button { background: #25D366; border: none; color: #fff; font-weight: 700; padding: 8px 12px; border-radius: 20px; font-size: 13px; }
+  .header-right { display: flex; gap: 6px; align-items: center; }
+  .header-right .bell { background: #fff; color: #111; padding: 8px 10px; }
+  .header-right .bell.on { background: #FFD93D; }
   .room { background: #fff; padding: 8px; display: flex; gap: 8px; flex-shrink: 0; border-bottom: 1px solid #ddd; }
   .room input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px; background: #F2F2F2; }
   .room button { background: #075E54; color: #fff; border: none; padding: 10px 16px; border-radius: 20px; font-weight: 700; }
@@ -43,7 +46,10 @@
 
 <div class="header">
   <div><b>Chat</b><small id="statusText">Offline • Room connect karo</small></div>
-  <button onclick="startCall()">📹 Video Call</button>
+  <div class="header-right">
+    <button class="bell" id="bellBtn" onclick="askNotify()">🔔</button>
+    <button onclick="startCall()">📹 Video Call</button>
+  </div>
 </div>
 
 <div class="room">
@@ -77,13 +83,46 @@
 
 <script>
   let client = null, baseTopic = "", currentRoom = "";
-  const myId = "u_" + Math.floor(Math.random()*100000);
+  let myId = localStorage.getItem('tadka_myid');
+  if(!myId){ myId = "u_" + Math.floor(Math.random()*1000000) + "_" + Date.now(); localStorage.setItem('tadka_myid', myId); }
   let mediaRecorder = null, audioChunks = [], isRecording = false;
   let saved = [], seen = new Set();
   let pc = null, localStream = null, micOn = true, camOn = true;
+  let unreadCount = 0;
 
   function timeNow(){ return new Date().toLocaleTimeString('hi-IN',{hour:'2-digit',minute:'2-digit'}); }
   function setStatus(t){ document.getElementById('statusText').textContent = t; }
+
+  // --- NOTIFICATION : Jab chat khula hoga tabhi aayega ---
+  function askNotify(){
+    if(!("Notification" in window)) return alert("Is browser me notification nahi chalega");
+    Notification.requestPermission().then(p=>{
+      if(p==="granted"){ document.getElementById('bellBtn').classList.add('on'); try{ new Notification("Chat",{body:"Notification ON ho gaya! Chat khula rahega tab message aayega."}); }catch(e){} }
+      else alert("Allow dabao");
+    });
+  }
+  function playBeep(){
+    try{
+      const ctx = new (window.AudioContext||window.webkitAudioContext)();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 880; g.gain.value = 0.15;
+      o.start(); setTimeout(()=>{ o.stop(); ctx.close(); }, 250);
+    }catch(e){}
+  }
+  function notifyNew(data){
+    playBeep();
+    if(navigator.vibrate) navigator.vibrate([120,60,120]);
+    unreadCount++;
+    document.title = "🔴 ("+unreadCount+") Naya Message • Chat";
+    const text = data.type==='text' ? data.text : (data.type==='photo' ? "📷 Photo aayi hai" : data.type==='video' ? "🎬 Video aaya hai" : "🎤 Voice aaya hai");
+    if("Notification" in window && Notification.permission==="granted"){
+      try{ new Notification("Chat - #"+currentRoom, {body: text}); }catch(e){}
+    }
+  }
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ unreadCount=0; document.title="Chat"; } });
+  document.getElementById('msgInput').addEventListener('focus', ()=>{ unreadCount=0; document.title="Chat"; });
+  if("Notification" in window && Notification.permission==="granted") document.getElementById('bellBtn').classList.add('on');
 
   function joinRoom(){
     const code = document.getElementById('roomCode').value.trim();
@@ -97,9 +136,10 @@
     if(saved.length) saved.forEach(m=>showMsg(m, m.sender===myId));
     else box.innerHTML = '<div class="empty">Naya room hai</div>';
     setStatus("Connecting...");
+    // Pehli baar Connect pe notification permission maango - taaki khula hone pe pata chale
+    if("Notification" in window && Notification.permission==="default"){ Notification.requestPermission().then(p=>{ if(p==="granted") document.getElementById('bellBtn').classList.add('on'); }); }
     client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
     client.on('connect', ()=>{
-      // Saare message + signal dono suno
       client.subscribe(baseTopic + "/msg/#");
       client.subscribe(baseTopic + "/signal");
       setStatus("Online • Room: " + code);
@@ -111,11 +151,33 @@
         if(data.sender===myId) return;
         if(seen.has(data.id)) return;
         seen.add(data.id); save(data); showMsg(data,false);
-        if(navigator.vibrate) navigator.vibrate(80);
+        notifyNew(data);
       }catch(e){}
     });
   }
-  function save(d){ saved.push(d); saved.sort((a,b)=>a.ts-b.ts); if(saved.length>100) saved=saved.slice(-100); try{localStorage.setItem('tadka_'+currentRoom, JSON.stringify(saved));}catch(e){} }
+
+  // --- NO LIMIT : Kabhi delete nahi hoga, 100 / 1000 / 10000 sab rahenge ---
+  function save(d){
+    saved.push(d);
+    saved.sort((a,b)=>a.ts-b.ts);
+    // NO slice(-100) - purana message kabhi nahi katega
+    try{
+      localStorage.setItem('tadka_'+currentRoom, JSON.stringify(saved));
+    }catch(e){
+      // Phone memory full ho jaye to bhi message delete nahi karenge.
+      // Sirf purani photo/video ka data halka karenge, TEXT hamesha rahega.
+      try{
+        for(let i=0;i<saved.length;i++){
+          if(saved[i].type==='photo' || saved[i].type==='video' || saved[i].type==='voice'){
+            saved[i].text = "[purana media - memory full]";
+            saved[i].type = 'text';
+            try{ localStorage.setItem('tadka_'+currentRoom, JSON.stringify(saved)); break; }catch(e2){ continue; }
+          }
+        }
+      }catch(e2){}
+    }
+  }
+
   function showMsg(data,isMe){
     const box = document.getElementById('chatBox');
     if(box.querySelector('.empty')) box.innerHTML="";
@@ -131,13 +193,45 @@
     if(!client||!client.connected) return alert("Pehle Connect dabao!");
     const data={ id: Date.now()+"_"+myId+"_"+Math.floor(Math.random()*99999), sender:myId, type:type, text:text, time:timeNow(), ts:Date.now() };
     const str = JSON.stringify(data);
-    // 1. Live ke liye normal + 2. History ke liye alag topic par retain
-    // Isse 10 message bhejoge to 10 hi rahenge, 1 nahi
+    // Photo bada ho to bhi MQTT limit me rahe, isliye photo pehle se chhota karke bhejte hai
+    if(str.length > 220000) return alert("Ye photo/video bahut bada hai, thodi chhoti photo bhejo");
     client.publish(baseTopic+"/msg/"+data.id, str, {retain:true, qos:1});
     seen.add(data.id); save(data); showMsg(data,true);
   }
   function sendMsg(){ const i=document.getElementById('msgInput'); const t=i.value.trim(); if(!t) return; sendPayload('text',t); i.value=""; }
-  function sendPhoto(inp){ const f=inp.files[0]; if(!f) return; const r=new FileReader(); r.onload=(e)=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement('canvas'); let w=img.width,h=img.height; if(w>600){h=h*600/w;w=600;} c.width=w;c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); sendPayload('photo',c.toDataURL('image/jpeg',0.6)); }; img.src=e.target.result; }; r.readAsDataURL(f); inp.value=""; }
+
+  // --- PHOTO FIX : Badi photo ab nahi atkegi, har size ki photo jayegi ---
+  function sendPhoto(inp){
+    const f=inp.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=(e)=>{
+      const img=new Image();
+      img.onload=()=>{
+        // Badi photo ko step-by-step chhota karo jab tak 180KB ke andar na aa jaye
+        let w=img.width, h=img.height;
+        let maxW = 800, quality = 0.65;
+        function tryCompress(){
+          let nw=w, nh=h;
+          if(nw>maxW){ nh=nh*maxW/nw; nw=maxW; }
+          const c=document.createElement('canvas'); c.width=nw; c.height=nh;
+          c.getContext('2d').drawImage(img,0,0,nw,nh);
+          const url = c.toDataURL('image/jpeg', quality);
+          // Agar abhi bhi bada hai to aur chhota karo, phir bhejo
+          if(url.length > 180000 && (maxW>300 || quality>0.25)){
+            if(quality>0.3) quality -= 0.15;
+            else maxW = Math.floor(maxW*0.7);
+            tryCompress();
+          } else {
+            sendPayload('photo', url);
+          }
+        }
+        tryCompress();
+      };
+      img.onerror=()=>alert("Ye photo khul nahi rahi, dusri photo try karo");
+      img.src=e.target.result;
+    };
+    r.readAsDataURL(f); inp.value="";
+  }
   function sendVideo(inp){ const f=inp.files[0]; if(!f) return; if(f.size>900000) return alert("Video bada hai, 8-10 sec ka bhejo"); const r=new FileReader(); r.onload=(e)=>sendPayload('video',e.target.result); r.readAsDataURL(f); inp.value=""; }
   async function toggleVoice(){
     const btn=document.getElementById('voiceBtn');
