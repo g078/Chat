@@ -16,13 +16,25 @@
   .header-right { display: flex; gap: 6px; align-items: center; }
   .header-right .bell { background: #fff; color: #111; padding: 8px 10px; }
   .header-right .bell.on { background: #FFD93D; }
+  .online-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #FF3B30; margin-right: 4px; vertical-align: middle; }
+  .online-dot.on { background: #25D366; }
   .room { background: #fff; padding: 8px; display: flex; gap: 8px; flex-shrink: 0; border-bottom: 1px solid #ddd; }
   .room input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px; background: #F2F2F2; }
   .room button { background: #075E54; color: #fff; border: none; padding: 10px 16px; border-radius: 20px; font-weight: 700; }
+  /* Delete Bar */
+  #deleteBar { display: none; background: #075E54; color: #fff; padding: 8px 10px; align-items: center; justify-content: space-between; gap: 6px; flex-shrink: 0; font-size: 13px; }
+  #deleteBar.show { display: flex; }
+  #deleteBar button { border: none; padding: 7px 10px; border-radius: 16px; font-weight: 700; font-size: 12px; }
+  #deleteBar .delBtn { background: #FF3B30; color: #fff; }
+  #deleteBar .allBtn { background: #fff; color: #075E54; }
+  #deleteBar .cancelBtn { background: transparent; color: #fff; }
   .chat { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 7px; }
-  .msg { max-width: 82%; padding: 8px 11px; border-radius: 10px; font-size: 15px; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+  .msg { max-width: 82%; padding: 8px 11px; border-radius: 10px; font-size: 15px; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.15); position: relative; }
+  .msg.selected { outline: 2px solid #075E54; background: #D1EFFF !important; }
   .me { align-self: flex-end; background: #DCF8C6; border-top-right-radius: 2px; }
   .other { align-self: flex-start; background: #fff; border-top-left-radius: 2px; }
+  .senderName { display: block; font-size: 11px; font-weight: 800; color: #075E54; margin-bottom: 2px; }
+  .me .senderName { color: #1A7A2E; }
   .msg img, .msg video { width: 100%; max-width: 230px; border-radius: 8px; display: block; margin-top: 4px; }
   .msg audio { width: 100%; max-width: 220px; margin-top: 4px; }
   .msg small { display: block; font-size: 10px; color: #888; text-align: right; margin-top: 3px; }
@@ -45,7 +57,7 @@
 <body>
 
 <div class="header">
-  <div><b>Chat</b><small id="statusText">Offline • Room connect karo</small></div>
+  <div><b>Chat</b><small id="statusText">Offline • Room connect karo</small><small id="memberText" style="font-size:11px;opacity:0.9;"><span class="online-dot" id="onlineDot"></span><span id="memberLabel">0 Member • Sab Offline</span></small></div>
   <div class="header-right">
     <button class="bell" id="bellBtn" onclick="askNotify()">🔔</button>
     <button onclick="startCall()">📹 Video Call</button>
@@ -57,7 +69,16 @@
   <button onclick="joinRoom()">Connect</button>
 </div>
 
-<div class="chat" id="chatBox"><div class="empty">Room connect karo, saare purane message yahi dikhenge</div></div>
+<div id="deleteBar">
+  <span id="selText">0 selected</span>
+  <div style="display:flex;gap:6px;">
+    <button class="allBtn" onclick="selectAllMsg()">Select All</button>
+    <button class="delBtn" onclick="deleteSelected()">🗑 Delete</button>
+    <button class="cancelBtn" onclick="clearSelection()">✕</button>
+  </div>
+</div>
+
+<div class="chat" id="chatBox"><div class="empty">Room connect karo, saare purane message yahi dikhenge<br><br>Message pe dabake rakho / click karo to Select hoga, phir Delete kar sakte ho</div></div>
 
 <div class="send">
   <button class="ic" onclick="document.getElementById('photoInput').click()">📷</button>
@@ -85,10 +106,22 @@
   let client = null, baseTopic = "", currentRoom = "";
   let myId = localStorage.getItem('tadka_myid');
   if(!myId){ myId = "u_" + Math.floor(Math.random()*1000000) + "_" + Date.now(); localStorage.setItem('tadka_myid', myId); }
+  // Naam - ek baar puchenge, phir hamesha yaad rahega. Isi se pata chalega kisne bheja.
+  let myName = localStorage.getItem('tadka_myname') || "";
+  if(!myName){
+    myName = prompt("Tera naam kya hai? (Sabko dikhega - jaise Ram)") || "User";
+    myName = myName.trim().slice(0,15) || "User";
+    localStorage.setItem('tadka_myname', myName);
+  }
   let mediaRecorder = null, audioChunks = [], isRecording = false;
   let saved = [], seen = new Set();
   let pc = null, localStream = null, micOn = true, camOn = true;
   let unreadCount = 0;
+  // Online / Members
+  let members = {}; // id -> {name, lastSeen}
+  let presenceTimer = null;
+  // Delete select
+  let selectedIds = new Set();
 
   function timeNow(){ return new Date().toLocaleTimeString('hi-IN',{hour:'2-digit',minute:'2-digit'}); }
   function setStatus(t){ document.getElementById('statusText').textContent = t; }
@@ -115,7 +148,7 @@
     if(navigator.vibrate) navigator.vibrate([120,60,120]);
     unreadCount++;
     document.title = "🔴 ("+unreadCount+") Naya Message • Chat";
-    const text = data.type==='text' ? data.text : (data.type==='photo' ? "📷 Photo aayi hai" : data.type==='video' ? "🎬 Video aaya hai" : "🎤 Voice aaya hai");
+    const text = (data.name||"Kisi ne") + ": " + (data.type==='text' ? data.text : (data.type==='photo' ? "📷 Photo aayi hai" : data.type==='video' ? "🎬 Video aaya hai" : "🎤 Voice aaya hai"));
     if("Notification" in window && Notification.permission==="granted"){
       try{ new Notification("Chat - #"+currentRoom, {body: text}); }catch(e){}
     }
@@ -124,29 +157,65 @@
   document.getElementById('msgInput').addEventListener('focus', ()=>{ unreadCount=0; document.title="Chat"; });
   if("Notification" in window && Notification.permission==="granted") document.getElementById('bellBtn').classList.add('on');
 
+  // --- ONLINE / MEMBERS ---
+  function sendPresence(){
+    if(!client||!client.connected) return;
+    client.publish(baseTopic+"/presence", JSON.stringify({id:myId, name:myName, ts:Date.now()}));
+  }
+  function updateMemberUI(){
+    const now = Date.now();
+    // 15 sec se purane ko offline maan lo
+    let list = Object.values(members).filter(m=> now - m.lastSeen < 15000);
+    let names = list.map(m=>m.name);
+    let othersOnline = list.some(m=>m.id!==myId);
+    let dot = document.getElementById('onlineDot');
+    dot.className = 'online-dot ' + (othersOnline ? 'on' : '');
+    let label = list.length + " Member";
+    if(list.length===0) label = "0 Member • Sab Offline";
+    else if(list.length===1) label = "1 Member • Sirf Tum Online Ho";
+    else label = list.length + " Member • " + names.join(", ") + " Online Hai";
+    document.getElementById('memberLabel').textContent = label;
+  }
+  setInterval(updateMemberUI, 3000);
+
   function joinRoom(){
     const code = document.getElementById('roomCode').value.trim();
     if(!code) return alert("Room code daalo");
     if(client){ try{client.end(true);}catch(e){} }
+    if(presenceTimer) clearInterval(presenceTimer);
     currentRoom = code; baseTopic = "tadka_final_" + code;
-    saved = []; seen = new Set();
+    saved = []; seen = new Set(); members = {}; selectedIds.clear(); updateDeleteBar();
     try{ saved = JSON.parse(localStorage.getItem('tadka_'+code)||'[]'); }catch(e){ saved=[]; }
     seen = new Set(saved.map(m=>m.id));
     const box = document.getElementById('chatBox'); box.innerHTML = "";
     if(saved.length) saved.forEach(m=>showMsg(m, m.sender===myId));
     else box.innerHTML = '<div class="empty">Naya room hai</div>';
-    setStatus("Connecting...");
-    // Pehli baar Connect pe notification permission maango - taaki khula hone pe pata chale
+    setStatus("Connecting... • Tum: " + myName);
     if("Notification" in window && Notification.permission==="default"){ Notification.requestPermission().then(p=>{ if(p==="granted") document.getElementById('bellBtn').classList.add('on'); }); }
     client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
     client.on('connect', ()=>{
       client.subscribe(baseTopic + "/msg/#");
       client.subscribe(baseTopic + "/signal");
-      setStatus("Online • Room: " + code);
+      client.subscribe(baseTopic + "/presence");
+      client.subscribe(baseTopic + "/delete");
+      setStatus("Online • Room: " + code + " • Tum: " + myName);
+      sendPresence();
+      presenceTimer = setInterval(sendPresence, 5000);
     });
     client.on('message', (topic, message)=>{
       try{
         if(topic.endsWith("/signal")){ handleSignal(JSON.parse(message.toString())); return; }
+        if(topic.endsWith("/presence")){
+          const p = JSON.parse(message.toString());
+          members[p.id] = {id:p.id, name:p.name||"User", lastSeen: Date.now()};
+          updateMemberUI(); return;
+        }
+        if(topic.endsWith("/delete")){
+          const d = JSON.parse(message.toString());
+          // Dusre ne delete kiya to mere paas se bhi delete ho jaye
+          if(d.ids && Array.isArray(d.ids)){ d.ids.forEach(id=> removeMsgLocal(id)); }
+          return;
+        }
         const data = JSON.parse(message.toString());
         if(data.sender===myId) return;
         if(seen.has(data.id)) return;
@@ -160,12 +229,9 @@
   function save(d){
     saved.push(d);
     saved.sort((a,b)=>a.ts-b.ts);
-    // NO slice(-100) - purana message kabhi nahi katega
     try{
       localStorage.setItem('tadka_'+currentRoom, JSON.stringify(saved));
     }catch(e){
-      // Phone memory full ho jaye to bhi message delete nahi karenge.
-      // Sirf purani photo/video ka data halka karenge, TEXT hamesha rahega.
       try{
         for(let i=0;i<saved.length;i++){
           if(saved[i].type==='photo' || saved[i].type==='video' || saved[i].type==='voice'){
@@ -177,37 +243,91 @@
       }catch(e2){}
     }
   }
+  function saveAll(){
+    try{ localStorage.setItem('tadka_'+currentRoom, JSON.stringify(saved)); }catch(e){}
+  }
 
   function showMsg(data,isMe){
     const box = document.getElementById('chatBox');
     if(box.querySelector('.empty')) box.innerHTML="";
-    const d = document.createElement('div'); d.className='msg '+(isMe?'me':'other');
+    const d = document.createElement('div');
+    d.className='msg '+(isMe?'me':'other');
+    d.dataset.id = data.id;
+    // Click karke select / unselect - delete ke liye
+    d.onclick = ()=> toggleSelect(data.id, d);
+    // Naam - kisne bheja, sabko pata chalega
+    const nameEl = document.createElement('span');
+    nameEl.className = 'senderName';
+    nameEl.textContent = isMe ? "Tum • " + (data.name||myName) : (data.name || "User");
+    d.appendChild(nameEl);
     if(data.type==='photo'){ const img=document.createElement('img'); img.src=data.text; d.appendChild(img); }
     else if(data.type==='video'){ const v=document.createElement('video'); v.src=data.text; v.controls=true; v.playsInline=true; d.appendChild(v); }
     else if(data.type==='voice'){ const a=document.createElement('audio'); a.src=data.text; a.controls=true; d.appendChild(a); }
-    else d.textContent=data.text;
+    else { const t=document.createElement('span'); t.textContent=data.text; d.appendChild(t); }
     const s=document.createElement('small'); s.textContent=data.time||timeNow(); d.appendChild(s);
     box.appendChild(d); box.scrollTop=box.scrollHeight;
+    if(selectedIds.has(data.id)) d.classList.add('selected');
   }
+
+  // --- DELETE : 1 ya Select All ---
+  function toggleSelect(id, el){
+    if(selectedIds.has(id)){ selectedIds.delete(id); el.classList.remove('selected'); }
+    else { selectedIds.add(id); el.classList.add('selected'); }
+    updateDeleteBar();
+  }
+  function updateDeleteBar(){
+    const bar = document.getElementById('deleteBar');
+    document.getElementById('selText').textContent = selectedIds.size + " selected • Message pe click karke select karo";
+    if(selectedIds.size>0) bar.classList.add('show'); else bar.classList.remove('show');
+  }
+  function selectAllMsg(){
+    selectedIds = new Set(saved.map(m=>m.id));
+    document.querySelectorAll('.msg').forEach(el=> el.classList.add('selected'));
+    updateDeleteBar();
+  }
+  function clearSelection(){
+    selectedIds.clear();
+    document.querySelectorAll('.msg').forEach(el=> el.classList.remove('selected'));
+    updateDeleteBar();
+  }
+  function deleteSelected(){
+    if(selectedIds.size===0) return;
+    const ids = Array.from(selectedIds);
+    const ok = confirm(ids.length + " message delete karu? Sabke phone se delete ho jayega.");
+    if(!ok) return;
+    // Sabko batao delete hua hai
+    if(client && client.connected){
+      try{ client.publish(baseTopic+"/delete", JSON.stringify({ids: ids, from: myId})); }catch(e){}
+    }
+    ids.forEach(id=> removeMsgLocal(id));
+    clearSelection();
+  }
+  function removeMsgLocal(id){
+    saved = saved.filter(m=>m.id!==id);
+    seen.delete(id);
+    saveAll();
+    const el = document.querySelector('.msg[data-id="'+id+'"]');
+    if(el) el.remove();
+    if(saved.length===0) document.getElementById('chatBox').innerHTML = '<div class="empty">Saare message delete ho gaye</div>';
+  }
+
   function sendPayload(type,text){
     if(!client||!client.connected) return alert("Pehle Connect dabao!");
-    const data={ id: Date.now()+"_"+myId+"_"+Math.floor(Math.random()*99999), sender:myId, type:type, text:text, time:timeNow(), ts:Date.now() };
+    const data={ id: Date.now()+"_"+myId+"_"+Math.floor(Math.random()*99999), sender:myId, name:myName, type:type, text:text, time:timeNow(), ts:Date.now() };
     const str = JSON.stringify(data);
-    // Photo bada ho to bhi MQTT limit me rahe, isliye photo pehle se chhota karke bhejte hai
     if(str.length > 220000) return alert("Ye photo/video bahut bada hai, thodi chhoti photo bhejo");
     client.publish(baseTopic+"/msg/"+data.id, str, {retain:true, qos:1});
     seen.add(data.id); save(data); showMsg(data,true);
   }
   function sendMsg(){ const i=document.getElementById('msgInput'); const t=i.value.trim(); if(!t) return; sendPayload('text',t); i.value=""; }
 
-  // --- PHOTO FIX : Badi photo ab nahi atkegi, har size ki photo jayegi ---
+  // --- PHOTO FIX : Badi photo ab nahi atkegi ---
   function sendPhoto(inp){
     const f=inp.files[0]; if(!f) return;
     const r=new FileReader();
     r.onload=(e)=>{
       const img=new Image();
       img.onload=()=>{
-        // Badi photo ko step-by-step chhota karo jab tak 180KB ke andar na aa jaye
         let w=img.width, h=img.height;
         let maxW = 800, quality = 0.65;
         function tryCompress(){
@@ -216,7 +336,6 @@
           const c=document.createElement('canvas'); c.width=nw; c.height=nh;
           c.getContext('2d').drawImage(img,0,0,nw,nh);
           const url = c.toDataURL('image/jpeg', quality);
-          // Agar abhi bhi bada hai to aur chhota karo, phir bhejo
           if(url.length > 180000 && (maxW>300 || quality>0.25)){
             if(quality>0.3) quality -= 0.15;
             else maxW = Math.floor(maxW*0.7);
