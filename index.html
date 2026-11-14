@@ -17,6 +17,10 @@
   .room input { flex: 1; padding: 11px 14px; border: 1.5px solid #DDD1B9; border-radius: 14px; outline: none; font-size: 14px; background: #F7F3E9; color: #173A30; min-width: 0; }
   .room input:focus { border-color: #B99A57; box-shadow: 0 0 0 3px rgba(201,168,93,0.12); }
   .room button { background: linear-gradient(145deg, #245C49, #123C30); color: #F8E8BD; border: 1px solid #B99A57; padding: 10px 17px; border-radius: 13px; font-weight: 800; box-shadow: 0 3px 0 #0B2921; }
+  .roomShortcuts { background: #FFFCF5; padding: 0 10px 10px 10px; display: flex; gap: 7px; overflow-x: auto; flex-shrink: 0; border-bottom: 1px solid #E9DFC9; scrollbar-width: none; }
+  .roomShortcuts::-webkit-scrollbar { display: none; }
+  .roomPill { flex-shrink: 0; background: #F7F3EA; border: 1.5px solid #DDD1B9; color: #173A30; padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+  .roomPill.active { background: linear-gradient(145deg, #245C49, #123C30); color: #F8E8BD; border-color: #B99A57; }
   .chat { flex: 1; min-height: 0; overflow-y: auto; padding: 13px 11px; display: flex; flex-direction: column; gap: 11px; background-color: #F5F0E5; background-image: radial-gradient(rgba(174,148,94,0.12) 1px, transparent 1px); background-size: 21px 21px; }
   .msg { max-width: 82%; padding: 11px 13px; border-radius: 16px; font-size: 15px; line-height: 1.45; word-wrap: break-word; box-shadow: 0 3px 9px rgba(58,48,28,0.09); position: relative; border: 1px solid rgba(174,148,94,0.13); }
   .me { align-self: flex-end; background: linear-gradient(145deg, #E2EEDC, #D0E5D2); color: #183B2E; border-bottom-right-radius: 4px; }
@@ -48,6 +52,7 @@
   #callBar button { width: 58px; height: 58px; border-radius: 50%; border: none; font-size: 22px; }
   .endCall { background: #FF3B30 !important; color: #fff; }
   .empty { text-align: center; color: #91866D; font-size: 13px; padding: 20px; }
+  #callStatus { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.6); color: #fff; padding: 6px 10px; border-radius: 8px; font-size: 12px; z-index: 5; }
 </style>
 </head>
 <body>
@@ -64,6 +69,8 @@
   <input type="text" id="roomCode" placeholder="Room code" value="xyz">
   <button onclick="joinRoom()">Connect</button>
 </div>
+
+<div class="roomShortcuts" id="roomShortcuts"></div>
 
 <div class="selectBar" id="selectBar">
   <span id="selCount">0 selected</span>
@@ -87,6 +94,7 @@
 <input type="file" id="videoInput" accept="video/*" hidden onchange="sendVideo(this)">
 
 <div id="callBox">
+  <div id="callStatus">Connecting...</div>
   <video id="remoteVideo" autoplay playsinline></video>
   <video id="localVideo" autoplay playsinline muted></video>
   <div id="callBar">
@@ -112,6 +120,7 @@
 
   function timeNow(){ return new Date().toLocaleTimeString('hi-IN',{hour:'2-digit',minute:'2-digit'}); }
   function setStatus(t){ document.getElementById('statusText').textContent = t; }
+  function setCallStatus(t){ var el=document.getElementById('callStatus'); if(el) el.textContent=t; }
 
   function getName(){
     if(myName) return myName;
@@ -128,6 +137,34 @@
     return "User " + String(id).slice(-4);
   }
 
+  // --- Recent Rooms Shortcut ---
+  function getRooms(){
+    try{ return JSON.parse(localStorage.getItem('tadka_rooms')||'[]'); }catch(e){ return []; }
+  }
+  function saveRoom(code){
+    if(!code) return;
+    let rooms = getRooms().filter(r=>r!==code);
+    rooms.unshift(code);
+    rooms = rooms.slice(0,4);
+    try{ localStorage.setItem('tadka_rooms', JSON.stringify(rooms)); }catch(e){}
+    try{ localStorage.setItem('tadka_last_room', code); }catch(e){}
+    renderRooms();
+  }
+  function renderRooms(){
+    const box = document.getElementById('roomShortcuts');
+    if(!box) return;
+    const rooms = getRooms();
+    if(!rooms.length){ box.style.display='none'; return; }
+    box.style.display='flex';
+    box.innerHTML='';
+    rooms.forEach(r=>{
+      const b=document.createElement('button');
+      b.className='roomPill'+(r===currentRoom?' active':'');
+      b.textContent=r;
+      b.onclick=()=>{ document.getElementById('roomCode').value=r; joinRoom(); };
+      box.appendChild(b);
+    });
+  }
   function updateMembersUI(){
     const now = Date.now();
     const ids = Object.keys(members).filter(id => now - members[id].lastSeen < 15000);
@@ -164,6 +201,7 @@
     const code = document.getElementById('roomCode').value.trim();
     if(!code) return;
     getName();
+    saveRoom(code);
     if(client){ try{client.end(true);}catch(e){} }
     if(presenceTimer) clearInterval(presenceTimer);
     if(pruneTimer) clearInterval(pruneTimer);
@@ -177,6 +215,7 @@
     if(saved.length) saved.forEach(m=>showMsg(m, m.sender===myId));
     else box.innerHTML = '<div class="empty">No messages</div>';
     setStatus("Connecting...");
+    renderRooms();
     if("Notification" in window && Notification.permission==="default"){ Notification.requestPermission().catch(()=>{}); }
     client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
     client.on('connect', ()=>{
@@ -391,18 +430,42 @@
   async function startCall(){
     if(!client||!client.connected) return alert("Connect dabao!");
     document.getElementById('callBox').classList.add('show');
-    await setupPC();
-    const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-    sendSignal({type:'offer', sdp: offer});
+    setCallStatus("Connecting...");
+    try{
+      await setupPC();
+      const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+      sendSignal({type:'offer', sdp: offer});
+    }catch(e){ setCallStatus("Call nahi laga"); }
   }
   async function setupPC(){
     if(pc) return;
-    localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
-    document.getElementById('localVideo').srcObject = localStream;
-    pc = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-    localStream.getTracks().forEach(t=>pc.addTrack(t, localStream));
-    pc.ontrack = (e)=>{ document.getElementById('remoteVideo').srcObject = e.streams[0]; };
+    try{
+      localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+    }catch(e){
+      try{
+        localStream = await navigator.mediaDevices.getUserMedia({audio:true});
+      }catch(e2){
+        localStream = null;
+      }
+    }
+    if(localStream){
+      var lv = document.getElementById('localVideo');
+      lv.srcObject = localStream;
+      lv.play().catch(()=>{});
+    }
+    pc = new RTCPeerConnection({iceServers:[
+      {urls:'stun:stun.l.google.com:19302'},
+      {urls:'turn:openrelay.metered.ca:80', username:'openrelayproject', credential:'openrelayproject'}
+    ]});
+    if(localStream){ localStream.getTracks().forEach(t=>pc.addTrack(t, localStream)); }
+    pc.ontrack = (e)=>{
+      var rv = document.getElementById('remoteVideo');
+      rv.srcObject = e.streams[0];
+      rv.play().catch(()=>{});
+      setCallStatus("Connected");
+    };
     pc.onicecandidate = (e)=>{ if(e.candidate) sendSignal({type:'ice', candidate:e.candidate}); };
+    pc.onconnectionstatechange = ()=>{ if(pc) setCallStatus("Connection: "+pc.connectionState); };
   }
   async function handleSignal(d){
     if(d.from===myId) return;
@@ -410,18 +473,25 @@
       const ok = confirm("Video Call aa raha hai?");
       if(!ok) return;
       document.getElementById('callBox').classList.add('show');
-      await setupPC();
-      await pc.setRemoteDescription(new RTCSessionDescription(d.sdp));
-      const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
-      sendSignal({type:'answer', sdp: ans});
+      setCallStatus("Call utha rahe hai...");
+      try{
+        await setupPC();
+        await pc.setRemoteDescription(new RTCSessionDescription(d.sdp));
+        const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
+        sendSignal({type:'answer', sdp: ans});
+      }catch(e){ setCallStatus("Call uthane me dikkat"); }
     } else if(d.type==='answer'){
       if(pc) await pc.setRemoteDescription(new RTCSessionDescription(d.sdp));
     } else if(d.type==='ice'){
       if(pc) try{ await pc.addIceCandidate(new RTCIceCandidate(d.candidate)); }catch(e){}
     } else if(d.type==='end'){ endCall(true); }
   }
-  function toggleMic(){ micOn=!micOn; if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=micOn); document.getElementById('micBtn').textContent=micOn?'🎤':'🔇'; }
-  function toggleCam(){ camOn=!camOn; if(localStream) localStream.getVideoTracks().forEach(t=>t.enabled=camOn); document.getElementById('camBtn').textContent=camOn?'📷':'🚫'; }
+  function toggleMic(){ micOn=!micOn; if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=micOn); document.getElementById('micBtn').textContent=micOn?'🎙':'🔇'; }
+  function toggleCam(){
+    camOn=!camOn;
+    if(localStream && localStream.getVideoTracks().length>0){ localStream.getVideoTracks().forEach(t=>t.enabled=camOn); }
+    document.getElementById('camBtn').textContent=camOn?'📷':'🚫';
+  }
   function endCall(silent){
     if(!silent) sendSignal({type:'end'});
     document.getElementById('callBox').classList.remove('show');
@@ -429,6 +499,15 @@
     if(localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream=null; }
     document.getElementById('remoteVideo').srcObject=null; document.getElementById('localVideo').srcObject=null;
   }
+
+  // Init - last room auto fill
+  (function(){
+    renderRooms();
+    try{
+      const last = localStorage.getItem('tadka_last_room');
+      if(last) document.getElementById('roomCode').value = last;
+    }catch(e){}
+  })();
 </script>
 </body>
 </html>
